@@ -1,34 +1,43 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   FaTicketAlt,
   FaCalendarAlt,
   FaMapMarkerAlt,
   FaCheckCircle,
 } from "react-icons/fa";
+import { getMyBookingsAPI } from '../../services/bookingAPI';
 
 function Completed() {
-  const bookings = [
-    {
-      id: 1,
-      organization: "City Care Hospital",
-      service: "General Consultation",
-      token: "A-089",
-      date: "20 Oct 2026",
-      location: "Kochi, Kerala",
-    }
-  ];
+   const [bookings, setBookings] = useState([]);
+
+    const loadBookings = async () => {
+        try {
+            const result = await getMyBookingsAPI();
+            setBookings(result.data.bookings);
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
+    useEffect(() => {
+        loadBookings();
+    }, []);
+
+    const completedBookings = bookings.filter(
+        (booking) => booking.status === "completed"
+    );
   return (
     
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      {bookings.map((booking) => (
+      {completedBookings.map((booking) => (
         <div
-          key={booking.id}
+          key={booking._id}
           className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
         >
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-xl font-bold text-[#171717]">
-                {booking.organization}
+                {booking.orgName}
               </h3>
               <p className="mt-1 text-sm text-gray-500">
                 {booking.service}
@@ -44,20 +53,17 @@ function Completed() {
           <div className="my-5 rounded-xl bg-[#171717] p-5 text-center">
             <p className="text-sm text-gray-300">Token Number</p>
             <p className="mt-2 text-4xl font-bold text-[#D4AF37]">
-              {booking.token}
+              {booking.tokenCode}
             </p>
           </div>
 
           <div className="space-y-3 text-sm text-gray-600">
             <p className="flex items-center gap-3">
               <FaCalendarAlt className="text-[#B89520]" />
-              {booking.date}
+              {booking.bookingDate}
             </p>
 
-            <p className="flex items-center gap-3">
-              <FaMapMarkerAlt className="text-[#B89520]" />
-              {booking.location}
-            </p>
+            
           </div>
         </div>
       ))}

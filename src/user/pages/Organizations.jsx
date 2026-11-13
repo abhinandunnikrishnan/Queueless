@@ -22,23 +22,30 @@ function Organizations() {
 const [loading, setLoading] = useState(false);
 
 // Fetch all organizations
+
 const getAllOrganizations = async () => {
   setLoading(true);
 
   try {
     const result = await getAllOrganizationsAPI();
 
-    if (result.status === 200) {
+    console.log("Organizations response:", result);
+
+    if (result?.status === 200) {
       setOrganizations(result.data);
     }
-
   } catch (error) {
-    console.log(error);
+    console.log(
+      "Organizations error:",
+      error.response?.data || error.message
+    );
+
     toast.error("Unable to fetch organizations");
   } finally {
     setLoading(false);
   }
 };
+
 
 
 // Call API when page loads

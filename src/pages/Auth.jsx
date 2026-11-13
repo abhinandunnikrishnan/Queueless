@@ -52,24 +52,33 @@ function Auth({insideRegister}) {
     
   }
 
-  const handleLogin=async(userData)=>{
-    const result= await loginAPI(userData)
-    console.log(result);
-    if(result.status==200){
-      toast.success("successfully Logined!! ")
-      sessionStorage.setItem("token",result.data.token)
-      sessionStorage.setItem("user",JSON.stringify(result.data.user))
-      setTimeout(() => {
-        if(result.data.user.role=="admin"){
-        navigate('/admin/dashboard')
-      }else{
-        navigate('/')
+ 
+const handleLogin = async (userData) => {
+  try {
+    const result = await loginAPI(userData);
+    console.log("Login response:", result);
+
+    if (result?.status === 200) {
+      toast.success("Successfully logged in!");
+
+      sessionStorage.setItem("token", result.data.token);
+      sessionStorage.setItem("user", JSON.stringify(result.data.user));
+
+      if (result.data.user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/");
       }
-      }, 2000);
-    }else{
-      toast.error(result)
     }
+  } catch (error) {
+    console.log("Login error:", error.response?.data || error.message);
+
+    toast.error(
+      error.response?.data?.message || "Login failed. Please try again."
+    );
   }
+};
+
 
   const handleGoogleLogin=async(credentialResponse)=>{
     console.log("inside google login");

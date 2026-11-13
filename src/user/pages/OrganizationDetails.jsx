@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams,  useNavigate } from "react-router-dom";
 import {
   FaHospital,
   FaArrowLeft,
@@ -11,13 +11,19 @@ import {
 import { CiLocationOn, CiClock2, CiBellOn } from "react-icons/ci";
 import Header from '../components/Header';
 import { viewOrganisationApi } from '../../services/userApi';
+import { createBookingAPI, getQueueAvailabilityAPI } from '../../services/bookingAPI';
+
+
 
 function OrganizationDetails() {
+  const navigate=useNavigate()
   const{id}=useParams()
   const [selectedDateGeneral, setSelectedDateGeneral] = useState("");
   const [selectedDateSpecial, setSelectedDateSpecial] = useState("");
   const [selectedTimeGeneral, setSelectedTimeGeneral] = useState("");
   const [selectedTimeSpecial, setSelectedTimeSpecial] = useState("");
+  const [generalWaiting, setGeneralWaiting] = useState(0);
+  const [specialWaiting, setSpecialWaiting] = useState(0);
   
   const[orgDetails,setOrgDetails]=useState([])
   console.log(orgDetails);
@@ -25,6 +31,32 @@ function OrganizationDetails() {
   useEffect(()=>{
     getOrgDetails()
   },[])
+
+  useEffect(() => {
+  if (selectedDateGeneral && selectedTimeGeneral) {
+    getQueueAvailability(
+      "General Consultation",
+      selectedDateGeneral,
+      selectedTimeGeneral,
+      setGeneralWaiting
+    );
+  } else {
+    setGeneralWaiting(0);
+  }
+}, [id, selectedDateGeneral, selectedTimeGeneral]);
+
+useEffect(() => {
+  if (selectedDateSpecial && selectedTimeSpecial) {
+    getQueueAvailability(
+      "Specialist Consultation",
+      selectedDateSpecial,
+      selectedTimeSpecial,
+      setSpecialWaiting
+    );
+  } else {
+    setSpecialWaiting(0);
+  }
+}, [id, selectedDateSpecial, selectedTimeSpecial]);
 
   const getOrgDetails=async()=>{
     const result=await viewOrganisationApi(id)
@@ -42,6 +74,80 @@ function OrganizationDetails() {
   "04:00 PM - 05:00 PM",
   "05:00 PM - 06:00 PM",
 ];
+
+const getQueueAvailability = async (
+  service,
+  date,
+  timeSlot,
+  setWaiting
+) => {
+  try {
+    const result = await getQueueAvailabilityAPI(
+      id,
+      date,
+      service,
+      timeSlot
+    );
+
+    if (result.status === 200) {
+      setWaiting(result.data.totalWaiting);
+    }
+  } catch (error) {
+    console.log(
+      "Queue availability error:",
+      error.response?.data || error.message
+    );
+
+    setWaiting(0);
+  }
+};
+
+
+const handleBookToken = async (service, date, timeSlot) => {
+
+    if (!date || !timeSlot) {
+        alert("Please select date and time slot");
+        return;
+    }
+
+    if (!sessionStorage.getItem("token")) {
+        alert("Please login first");
+        navigate("/login");
+        return;
+    }
+
+    try {
+        const result = await createBookingAPI({
+            orgId: id,
+            service,
+            bookingDate: date,
+            timeSlot
+        });
+
+        if (result.status === 200 || result.status === 201) {
+            alert(`Booking successful! Your token is ${result.data.booking.tokenCode}`);
+        } else {
+            alert(result.response?.data?.message || "Booking failed");
+        }
+
+    } catch (error) {
+        console.log(error);
+        alert(error.response?.data?.message || "Something went wrong");
+    }
+};
+
+
+const getEstimatedWaitingTime = (waitingCount) => {
+  if (waitingCount === 0) {
+    return "No waiting time";
+  }
+
+  const minTime = waitingCount * 5;
+  const maxTime = waitingCount * 10;
+
+  return `${minTime}–${maxTime} minutes`;
+};
+
 
   return (
     <div className="min-h-screen bg-[#F7F7F5] text-[#171717]">
@@ -189,21 +295,21 @@ function OrganizationDetails() {
                     </p>
                   )}
 
-                  {selectedDateGeneral && (
+                  {selectedDateGeneral && selectedTimeGeneral && (
                     <div className="mt-4 flex items-center gap-3 rounded-lg border border-gray-200 bg-[#F7F7F5] p-4">
                       <FaUsers className="text-xl text-[#98720D]" />
 
                       <div>
                         <p className="text-sm text-gray-500">People Waiting</p>
                         <p className="text-lg font-bold text-[#171717]">
-                          12 People
+                          {generalWaiting} People
                         </p>
                       </div>
                     </div>
                   )}
 
                   {/* Show Waiting Time Only After Date Selection */}
-                  {selectedDateGeneral && (
+                  {selectedDateGeneral && selectedTimeGeneral && (
                     <div className="mt-4 flex items-center gap-3 rounded-lg border border-[#D4AF37]/40 bg-[#D4AF37]/10 p-4">
                       <CiClock2 className="text-2xl text-[#98720D]" />
 
@@ -212,7 +318,7 @@ function OrganizationDetails() {
                           Estimated Waiting Time
                         </p>
                         <p className="text-lg font-bold text-[#171717]">
-                          20–30 minutes
+                          {getEstimatedWaitingTime(generalWaiting)}
                         </p>
                         <p className="mt-1 text-xs text-gray-500">
                           For {selectedDateGeneral}
@@ -226,12 +332,19 @@ function OrganizationDetails() {
                     <span className="text-xl font-bold text-[#98720D]">₹50</span>
                   </div>
 
-                  <Link
-                    
+                  <button
+                    type='button'
+                     onClick={() =>
+                        handleBookToken(
+                            "General Consultation",
+                            selectedDateGeneral,
+                            selectedTimeGeneral
+                        )
+                    }
                     className="mt-4 w-full flex items-center justify-center gap-2 bg-[#171717] text-white py-3 rounded-lg font-semibold hover:bg-[#333] transition"
                   >
                     Book Token <FaArrowRight />
-                  </Link>
+                  </button>
                 </div>
 
                 {/* Service 2 */}
@@ -290,21 +403,21 @@ function OrganizationDetails() {
                     </p>
                   )}
 
-                  {selectedDateSpecial && (
+                  {selectedDateSpecial && selectedTimeSpecial && (
                     <div className="mt-4 flex items-center gap-3 rounded-lg border border-gray-200 bg-[#F7F7F5] p-4">
                       <FaUsers className="text-xl text-[#98720D]" />
 
                       <div>
                         <p className="text-sm text-gray-500">People Waiting</p>
                         <p className="text-lg font-bold text-[#171717]">
-                          12 People
+                          {specialWaiting} People
                         </p>
                       </div>
                     </div>
                   )}
 
                   {/* Show Waiting Time Only After Date Selection */}
-                  {selectedDateSpecial && (
+                  {selectedDateSpecial && selectedTimeSpecial && (
                     <div className="mt-4 flex items-center gap-3 rounded-lg border border-[#D4AF37]/40 bg-[#D4AF37]/10 p-4">
                       <CiClock2 className="text-2xl text-[#98720D]" />
 
@@ -313,7 +426,7 @@ function OrganizationDetails() {
                           Estimated Waiting Time
                         </p>
                         <p className="text-lg font-bold text-[#171717]">
-                          20–30 minutes
+                          {getEstimatedWaitingTime(specialWaiting)}
                         </p>
                         <p className="mt-1 text-xs text-gray-500">
                           For {selectedDateSpecial}
@@ -327,12 +440,19 @@ function OrganizationDetails() {
                     <span className="text-xl font-bold text-[#98720D]">₹100</span>
                   </div>
 
-                  <Link
-                    
+                  <button
+                    type='button'
+                    onClick={() =>
+                        handleBookToken(
+                            "Specialist Consultation",
+                            selectedDateSpecial,
+                            selectedTimeSpecial
+                        )
+                    }
                     className="mt-4 w-full flex items-center justify-center gap-2 bg-[#171717] text-white py-3 rounded-lg font-semibold hover:bg-[#333] transition"
                   >
                     Book Token <FaArrowRight />
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>

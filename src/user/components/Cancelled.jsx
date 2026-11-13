@@ -1,22 +1,30 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   FaTicketAlt,
   FaCalendarAlt,
   FaMapMarkerAlt,
   FaTimesCircle,
 } from "react-icons/fa";
+import { getMyBookingsAPI } from '../../services/bookingAPI';
 function Cancelled() {
-  const bookings = [
-    {
-      id: 1,
-      organization: "City Care Hospital",
-      service: "General Consultation",
-      token: "A-072",
-      date: "15 Oct 2026",
-      location: "Kochi, Kerala",
-    },
-    
-  ];
+  const [bookings, setBookings] = useState([]);
+
+    const loadBookings = async () => {
+        try {
+            const result = await getMyBookingsAPI();
+            setBookings(result.data.bookings);
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
+    useEffect(() => {
+        loadBookings();
+    }, []);
+
+    const cancelledBookings = bookings.filter(
+        (booking) => booking.status === "cancelled"
+    );
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {bookings.map((booking) => (
