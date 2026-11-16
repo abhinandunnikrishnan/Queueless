@@ -16,10 +16,13 @@ import Edit from "../components/Edit";
 import { useState } from "react";
 import Header from '../components/Header';
 import axiosInstance from '../../api/axiosInstance';
+import { getMyBookingsAPI } from '../../services/bookingAPI';
+
 
 
 function Profile() {
   const [showEdit, setShowEdit] = useState(false);
+  const [bookings, setBookings] = useState([]);
   const [user, setUser] = useState({
   username: "",
   email: "",
@@ -34,7 +37,37 @@ function Profile() {
   if (loggedUser) {
     setUser(JSON.parse(loggedUser));
   }
+  getMyBookings()
   }, []);
+
+
+  const totalTokens = bookings.length;
+
+const activeTokens = bookings.filter(
+    (booking) =>
+        booking.status === "waiting" ||
+        booking.status === "serving"
+).length;
+
+const completedTokens = bookings.filter(
+    (booking) => booking.status === "completed"
+).length;
+
+
+  const getMyBookings = async () => {
+    try {
+        const result = await getMyBookingsAPI();
+
+        if (result.status === 200) {
+            setBookings(result.data.bookings || []);
+        }
+    } catch (error) {
+        console.log(
+            "Error fetching bookings:",
+            error.response?.data || error.message
+        );
+    }
+};
 
   return (
      <div>
@@ -174,7 +207,7 @@ function Profile() {
                       Total Tokens
                     </span>
                   </div>
-                  <span className="text-2xl font-bold text-[#171717]">12</span>
+                  <span className="text-2xl font-bold text-[#171717]">{totalTokens}</span>
                 </div>
   
                 <div className="flex items-center justify-between rounded-xl bg-gray-50 p-4">
@@ -186,7 +219,7 @@ function Profile() {
                       Active Tokens
                     </span>
                   </div>
-                  <span className="text-2xl font-bold text-[#171717]">2</span>
+                  <span className="text-2xl font-bold text-[#171717]">{activeTokens}</span>
                 </div>
   
                 <div className="flex items-center justify-between rounded-xl bg-gray-50 p-4">
@@ -198,7 +231,7 @@ function Profile() {
                       Completed
                     </span>
                   </div>
-                  <span className="text-2xl font-bold text-[#171717]">10</span>
+                  <span className="text-2xl font-bold text-[#171717]">{completedTokens}</span>
                 </div>
               </div>
             </div>
@@ -226,18 +259,51 @@ function Profile() {
                 </thead>
   
                 <tbody className="divide-y divide-gray-100 text-sm">
-                  <tr>
-                    <td className="px-4 py-4 font-medium text-[#171717]">
-                      City Care Hospital
-                    </td>
-                    <td className="px-4 py-4">#T102</td>
-                    <td className="px-4 py-4 text-gray-500">28 Oct 2026</td>
-                    <td className="px-4 py-4">
-                      <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                        Active
-                      </span>
-                    </td>
-                  </tr>
+                  {bookings.length > 0 ? (
+  bookings.slice(0, 5).map((booking) => (
+    <tr key={booking._id}>
+      <td className="px-4 py-4 font-medium text-[#171717]">
+        {booking.orgName}
+      </td>
+
+      <td className="px-4 py-4">
+        {booking.tokenCode}
+      </td>
+
+      <td className="px-4 py-4 text-gray-500">
+        {new Date(
+          booking.bookingDate + "T00:00:00"
+        ).toLocaleDateString("en-IN")}
+      </td>
+
+      <td className="px-4 py-4">
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            booking.status === "completed"
+              ? "bg-green-100 text-green-700"
+              : booking.status === "cancelled" ||
+                booking.status === "skipped"
+              ? "bg-red-100 text-red-700"
+              : booking.status === "serving"
+              ? "bg-yellow-100 text-yellow-700"
+              : "bg-blue-100 text-blue-700"
+          }`}
+        >
+          {booking.status}
+        </span>
+      </td>
+    </tr>
+  ))
+) : (
+  <tr>
+    <td
+      colSpan="4"
+      className="px-4 py-6 text-center text-gray-500"
+    >
+      No token activity yet.
+    </td>
+  </tr>
+)}
                 </tbody>
               </table>
             </div>

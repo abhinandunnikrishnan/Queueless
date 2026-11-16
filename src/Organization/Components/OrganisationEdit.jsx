@@ -1,7 +1,90 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { FaTimes, FaSave, FaBuilding } from "react-icons/fa";
+import { updateOrgProfileAPI } from '../../services/userApi';
 
-function OrganisationEdit() {
+
+function OrganisationEdit({
+  orgname,
+  orgtype,
+  orgaddress,
+  orgphno,
+  email,
+  orgTiming,
+  orgDesc,
+  onClose,
+  onUpdated
+}) {
+  const [formData, setFormData] = useState({
+    orgName: orgname || "",
+    orgCategory: orgtype || "",
+    orgDesc: orgDesc || "",
+    orgEmail: email || "",
+    orgPhoneNo: orgphno || "",
+    orgAddress: orgaddress || "",
+    openingTime: orgTiming?.openingTime || "",
+    closingTime: orgTiming?.closingTime || ""
+});
+const [saving, setSaving] = useState(false);
+
+
+const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+        setSaving(true);
+
+        const updatedData = {
+            orgName: formData.orgName,
+            orgCategory: formData.orgCategory,
+            orgDesc: formData.orgDesc,
+            orgPhoneNo: formData.orgPhoneNo,
+            orgAddress: formData.orgAddress,
+            orgTiming: {
+                openingTime: formData.openingTime,
+                closingTime: formData.closingTime
+            }
+        };
+
+        const result = await updateOrgProfileAPI(updatedData);
+
+        if (result.status === 200) {
+            sessionStorage.setItem(
+                "org",
+                JSON.stringify(result.data.organization)
+            );
+
+            onUpdated(result.data.organization);
+
+            alert("Organisation profile updated successfully!");
+            onClose();
+        }
+
+    } catch (error) {
+        console.error(
+            "Profile update error:",
+            error.response?.data || error.message
+        );
+
+        alert(
+            error.response?.data?.message ||
+            "Unable to update organisation profile."
+        );
+
+    } finally {
+        setSaving(false);
+    }
+};
+
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    setFormData((prev) => ({
+        ...prev,
+        [name]: value
+    }));
+};
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
@@ -41,7 +124,7 @@ function OrganisationEdit() {
       </div>
 
       {/* Form */}
-      <form className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5">
 
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <div>
@@ -50,7 +133,9 @@ function OrganisationEdit() {
             </label>
             <input
               type="text"
-              defaultValue="City Care Hospital"
+              name="orgName"
+              value={formData.orgName}
+              onChange={handleChange}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#D4AF37]"
             />
           </div>
@@ -60,14 +145,17 @@ function OrganisationEdit() {
               Organization Type
             </label>
             <select
-              defaultValue="Hospital"
+              name="orgCategory"
+              value={formData.orgCategory}
+              onChange={handleChange}
               className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#D4AF37]"
             >
-              <option>Hospital</option>
-              <option>Clinic</option>
-              <option>Service Center</option>
-              <option>Bank</option>
-              <option>Other</option>
+              <option value="">Select Category</option>
+              <option value="Hospital">Hospital</option>
+              <option value="Service Center">Service Center</option>
+              <option value="Salon">Salon</option>
+              <option value="Restaurant">Restaurant</option>
+              
             </select>
           </div>
 
@@ -76,8 +164,11 @@ function OrganisationEdit() {
               Description
             </label>
             <textarea
+              name="orgDesc"
               rows="3"
-              defaultValue="Providing quality healthcare services to our community."
+              value={formData.orgDesc}
+              onChange={handleChange}
+              placeholder="Tell customers about your organization..."
               className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#D4AF37]"
             />
           </div>
@@ -95,8 +186,11 @@ function OrganisationEdit() {
                 Email Address
               </label>
               <input
-                type="email"
-                defaultValue="citycare@example.com"
+                 type="email"
+                 name="orgEmail"
+                 readOnly
+                 value={formData.orgEmail}
+                 onChange={handleChange}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#D4AF37]"
               />
             </div>
@@ -106,8 +200,10 @@ function OrganisationEdit() {
                 Phone Number
               </label>
               <input
-                type="tel"
-                defaultValue="+91 9876543210"
+                type="text"
+                name="orgPhoneNo"
+                value={formData.orgPhoneNo}
+                onChange={handleChange}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#D4AF37]"
               />
             </div>
@@ -117,8 +213,10 @@ function OrganisationEdit() {
                 Address
               </label>
               <textarea
-                rows="2"
-                defaultValue="Ernakulam, Kerala, India"
+                type="text"
+                name="orgAddress"
+                value={formData.orgAddress}
+                onChange={handleChange}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#D4AF37]"
               />
             </div>
@@ -137,8 +235,10 @@ function OrganisationEdit() {
                 Opening Time
               </label>
               <input
-                type="time"
-                defaultValue="09:00"
+                 type="time"
+                  name="openingTime"
+                  value={formData.openingTime}
+                  onChange={handleChange}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#D4AF37]"
               />
             </div>
@@ -149,7 +249,9 @@ function OrganisationEdit() {
               </label>
               <input
                 type="time"
-                defaultValue="18:00"
+                name="closingTime"
+                value={formData.closingTime}
+                onChange={handleChange}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#D4AF37]"
               />
             </div>
@@ -159,18 +261,20 @@ function OrganisationEdit() {
         {/* Buttons */}
         <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
           <button
-            type="button"
-            className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Cancel
+              Cancel
           </button>
 
           <button
-            type="button"
-            className="flex items-center gap-2 rounded-lg bg-[#171717] px-5 py-2.5 text-sm font-semibold text-[#D4AF37] hover:bg-black"
+              type="submit"
+              disabled={saving}
+              className="flex items-center gap-2 rounded-lg bg-[#171717] px-5 py-2.5 text-sm font-semibold text-[#D4AF37] hover:bg-black disabled:opacity-50"
           >
-            <FaSave />
-            Save Changes
+              <FaSave />
+              {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
 

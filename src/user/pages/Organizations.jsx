@@ -20,6 +20,25 @@ function Organizations() {
   const [organizations, setOrganizations] = useState([]);
 
 const [loading, setLoading] = useState(false);
+const [searchTerm, setSearchTerm] = useState("");
+const [categoryFilter, setCategoryFilter] = useState("all");
+
+const filteredOrganizations = organizations.filter((org) => {
+  const search = searchTerm.toLowerCase();
+
+  const matchesSearch =
+    org.orgName?.toLowerCase().includes(search) ||
+    org.orgAddress?.toLowerCase().includes(search) ||
+    org.orgCategory?.toLowerCase().includes(search);
+
+  const matchesCategory =
+    categoryFilter === "all" ||
+    org.orgCategory?.toLowerCase() === categoryFilter;
+
+  return matchesSearch && matchesCategory;
+});
+
+
 
 // Fetch all organizations
 
@@ -85,14 +104,14 @@ useEffect(() => {
       <CiSearch className="text-gray-500 text-3xl ml-2 shrink-0" />
 
       <input
-        type="text"
-        placeholder="Search organizations..."
-        className="flex-1 min-w-0 p-3 text-black outline-none bg-transparent "
-      />
+  type="text"
+  placeholder="Search organizations..."
+  value={searchTerm}
+  onChange={(e) => setSearchTerm(e.target.value)}
+  className="flex-1 min-w-0 p-3 text-black outline-none bg-transparent"
+/>
 
-      <button className="bg-[#D4AF37] text-[#171717] px-5 py-3 rounded-lg font-semibold hover:bg-[#e4c45b] transition">
-        Search
-      </button>
+      
     </div>
   </div>
 </section>
@@ -113,28 +132,66 @@ useEffect(() => {
             <p className="text-gray-600 mt-4">
               Choose a category to discover available organizations.
             </p>
+            <button
+  onClick={() => setCategoryFilter("all")}
+  className={`mt-6 px-6 py-3 rounded-lg font-semibold border transition ${
+    categoryFilter === "all"
+      ? "bg-[#D4AF37] text-[#171717] border-[#D4AF37]"
+      : "bg-white text-gray-700 border-gray-200 hover:border-[#D4AF37]"
+  }`}
+>
+  All Organizations
+</button>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-10">
-            <button className="bg-white border border-gray-200 rounded-2xl p-5 md:p-7 text-left hover:border-[#D4AF37] hover:shadow-md transition">
+            <button
+  onClick={() => setCategoryFilter("hospital")}
+  className={`bg-white border rounded-2xl p-5 md:p-7 text-left hover:border-[#D4AF37] hover:shadow-md transition ${
+    categoryFilter === "hospital"
+      ? "border-[#D4AF37] shadow-md"
+      : "border-gray-200"
+  }`}
+>
               <FaHospital className="text-3xl text-[#98720D]" />
               <h3 className="font-bold mt-4">Hospitals</h3>
               <p className="text-sm text-gray-500 mt-2">Medical services</p>
             </button>
 
-            <button className="bg-white border border-gray-200 rounded-2xl p-5 md:p-7 text-left hover:border-[#D4AF37] hover:shadow-md transition">
+            <button
+  onClick={() => setCategoryFilter("salon")}
+  className={`bg-white border rounded-2xl p-5 md:p-7 text-left hover:border-[#D4AF37] hover:shadow-md transition ${
+    categoryFilter === "salon"
+      ? "border-[#D4AF37] shadow-md"
+      : "border-gray-200"
+  }`}
+>
               <FaSpa className="text-3xl text-[#98720D]" />
               <h3 className="font-bold mt-4">Salons</h3>
               <p className="text-sm text-gray-500 mt-2">Personal care</p>
             </button>
 
-            <button className="bg-white border border-gray-200 rounded-2xl p-5 md:p-7 text-left hover:border-[#D4AF37] hover:shadow-md transition">
+            <button
+  onClick={() => setCategoryFilter("restaurant")}
+  className={`bg-white border rounded-2xl p-5 md:p-7 text-left hover:border-[#D4AF37] hover:shadow-md transition ${
+    categoryFilter === "restaurant"
+      ? "border-[#D4AF37] shadow-md"
+      : "border-gray-200"
+  }`}
+>
               <FaUtensils className="text-3xl text-[#98720D]" />
               <h3 className="font-bold mt-4">Restaurants</h3>
               <p className="text-sm text-gray-500 mt-2">Dining services</p>
             </button>
 
-            <button className="bg-white border border-gray-200 rounded-2xl p-5 md:p-7 text-left hover:border-[#D4AF37] hover:shadow-md transition">
+            <button
+  onClick={() => setCategoryFilter("service centre")}
+  className={`bg-white border rounded-2xl p-5 md:p-7 text-left hover:border-[#D4AF37] hover:shadow-md transition ${
+    categoryFilter === "service centre"
+      ? "border-[#D4AF37] shadow-md"
+      : "border-gray-200"
+  }`}
+>
               <BiSolidCarMechanic className="text-3xl text-[#98720D]" />
               <h3 className="font-bold mt-4">Service Centre</h3>
               <p className="text-sm text-gray-500 mt-2">Vehicle Services</p>
@@ -170,9 +227,9 @@ useEffect(() => {
     <div className="col-span-full text-center py-16">
       <p className="text-gray-500">Loading organizations...</p>
     </div>
-  ) : organizations.length > 0 ? (
+  ) : filteredOrganizations.length > 0 ? (
 
-    organizations.map((org) => {
+    filteredOrganizations.map((org) => {
       const CategoryIcon =
         org.orgCategory?.toLowerCase() === "hospital"
           ? FaHospital
@@ -241,12 +298,9 @@ useEffect(() => {
 
   ) : (
     <div className="col-span-full text-center py-16">
-      <h3 className="text-xl font-bold">
-        No Organizations Found
-      </h3>
       <p className="text-gray-500 mt-2">
-        No organizations have registered yet.
-      </p>
+  No organizations match your search or selected category.
+</p>
     </div>
   )}
 

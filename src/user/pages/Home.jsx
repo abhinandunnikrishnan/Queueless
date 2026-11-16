@@ -1,7 +1,7 @@
 
 import Header from '../components/Header'
-import React from "react";
-import { Link } from 'react-router-dom';
+import React, { useContext } from "react";
+import { Link, useNavigate } from 'react-router-dom';
 import { CiSearch, CiClock2, CiBellOn } from "react-icons/ci";
 import {
   FaArrowRight,
@@ -15,7 +15,22 @@ import {
 
 
 function Home() {
-  
+  const navigate = useNavigate();
+
+
+
+const handleJoinQueue = () => {
+  const token = sessionStorage.getItem("token");
+
+  if (token) {
+    navigate("/organizations");
+  } else {
+    navigate("/login");
+  }
+};
+
+
+
   return (
     <div className="min-h-screen bg-[#F7F7F5] text-[#171717] overflow-hidden">
       <Header />
@@ -49,29 +64,16 @@ function Home() {
                 and spend less time waiting and more time living.
               </p>
 
-              {/* Search */}
-              <div className="mt-9 w-full max-w-xl mx-auto lg:mx-0 flex items-center bg-white rounded-xl p-2 shadow-lg">
-                <CiSearch className="text-gray-500 text-3xl ml-2 shrink-0" />
-
-                <input
-                  type="text"
-                  placeholder="Search hospitals, salons, restaurants..."
-                  className="flex-1 min-w-0 w-full p-3 text-black outline-none bg-transparent text-sm md:text-base"
-                />
-
-                <button className="bg-[#D4AF37] text-[#171717] px-4 md:px-6 py-3 rounded-lg font-semibold hover:bg-[#e4c45b] transition">
-                  Search
-                </button>
-              </div>
+              
 
               {/* Actions */}
               <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-7">
-                <Link
-                  to="/register"
+                <button
+                  onClick={handleJoinQueue}
                   className="bg-[#D4AF37] text-[#171717] px-6 md:px-8 py-4 rounded-lg font-semibold flex items-center justify-center gap-3 hover:bg-[#e4c45b] transition"
                 >
                   Join a Queue <FaArrowRight />
-                </Link>
+                </button>
 
                 <Link
                   to="/orgRegister"
@@ -273,26 +275,7 @@ function Home() {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="px-6 pb-20 md:pb-28">
-        <div className="max-w-4xl mx-auto text-center bg-white rounded-3xl border border-gray-200 px-6 sm:px-10 py-12 md:py-16">
-          <h2 className="text-3xl md:text-5xl font-bold leading-tight">
-            Ready to Skip the Line?
-          </h2>
 
-          <p className="text-gray-600 leading-8 mt-6 max-w-xl mx-auto">
-            Your time is valuable. Let QueueLess make every visit a little
-            easier.
-          </p>
-
-          <Link
-            to="/register"
-            className="inline-flex items-center justify-center gap-3 mt-8 bg-[#D4AF37] text-[#171717] px-8 py-4 rounded-lg font-semibold hover:bg-[#e4c45b] transition"
-          >
-            Get Started <FaArrowRight />
-          </Link>
-        </div>
-      </section>
 
     </div>
   )

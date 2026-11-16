@@ -4,6 +4,11 @@ export const createBookingAPI = async (reqBody) => {
     return await apiService("POST", "/bookings", reqBody);
 };
 
+// Create Stripe Checkout session
+export const createCheckoutSessionAPI = async (reqBody) => {
+    return await apiService("POST", "/bookings/create-checkout-session", reqBody);
+};
+
 // Get all bookings of logged-in user
 export const getMyBookingsAPI = async () => {
     return await apiService("GET", "/bookings/user");
@@ -49,4 +54,12 @@ export const getQueueAvailabilityAPI = async (
       params: { date, service, timeSlot }
     }
   );
+};
+
+// Check Stripe payment status
+export const checkPaymentStatusAPI = async (sessionId) => {
+    return await apiService(
+        "GET",
+        `/bookings/payment-status/${sessionId}`
+    );
 };

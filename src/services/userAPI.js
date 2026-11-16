@@ -42,3 +42,34 @@ export const getAllOrganizationsAPI =async()=>{
 export const viewOrganisationApi = async(id)=>{
     return await apiService("GET",`/organizations/${id}`,{}) 
 }
+
+// Update organisation profile
+export const updateOrgProfileAPI = async (orgData) => {
+    return await apiService("PUT", "/update-org", orgData);
+};
+
+// Get admin dashboard statistics
+export const getAdminDashboardStatsAPI = async () => {
+    return await apiService("GET", "/admin/dashboard-stats");
+};
+
+// Get all users and organizations for Admin Resource page
+export const getAdminResourcesAPI = async () => {
+    return await apiService("GET", "/admin/resources");
+};
+
+// Approve an organization
+export const approveOrganizationAPI = async (orgId) => {
+    return await apiService(
+        "PATCH",
+        `/admin/organizations/${orgId}/approve`
+    );
+};
+
+// Remove an organization
+export const removeOrganizationAPI = async (orgId) => {
+    return await apiService(
+        "DELETE",
+        `/admin/organizations/${orgId}`
+    );
+};

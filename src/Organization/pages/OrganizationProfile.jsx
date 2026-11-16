@@ -13,9 +13,13 @@ import {
   FaCalendarAlt,
 } from "react-icons/fa";
 import OrganisationEdit from '../Components/OrganisationEdit';
+import { viewOrganisationApi } from '../../services/userApi';
+
 
 
 function OrganizationProfile() {
+  const [approvalStatus, setApprovalStatus] = useState("pending");
+  const [orgDesc, setOrgDesc] = useState("");
   const [showEdit, setShowEdit] = useState(false);
   const[orgname,setOrgname]=useState("")
   const[orgtype,setOrgtype]=useState("")
@@ -28,20 +32,37 @@ function OrganizationProfile() {
   });
   
 
-  useEffect(()=>{
-          if(sessionStorage.getItem("orgToken")&&sessionStorage.getItem("org")){
-            const org = JSON.parse(sessionStorage.getItem("org"))
-            setOrgname(org?.orgName)
-            setOrgtype(org?.orgCategory)
-            setOrgaddress(org?.orgAddress)
-            setOrgphno(org?.orgPhoneNo)
-            setEmail(org?.orgEmail)
-            setOrgTiming(org?.orgTiming || {
-              openingTime: "",
-              closingTime: ""
-            });
-          }
-        },[])
+  useEffect(() => {
+  const fetchOrganizationDetails = async () => {
+    try {
+      if (sessionStorage.getItem("orgToken") && sessionStorage.getItem("org")) {
+        const storedOrg = JSON.parse(sessionStorage.getItem("org"));
+
+        const response = await viewOrganisationApi(storedOrg._id);
+        const org = response.data;
+
+        setOrgname(org?.orgName || "");
+        setOrgtype(org?.orgCategory || "");
+        setOrgaddress(org?.orgAddress || "");
+        setOrgphno(org?.orgPhoneNo || "");
+        setEmail(org?.orgEmail || "");
+        setOrgTiming(org?.orgTiming || {
+          openingTime: "",
+          closingTime: ""
+        });
+        setOrgDesc(org?.orgDesc || "");
+        setApprovalStatus(org?.approvalStatus || "pending");
+
+        // Update stored organization details
+        sessionStorage.setItem("org", JSON.stringify(org));
+      }
+    } catch (error) {
+      console.log("Error fetching organization details:", error);
+    }
+  };
+
+  fetchOrganizationDetails();
+}, []);
 
   return (
     <div>
@@ -50,7 +71,29 @@ function OrganizationProfile() {
       <div className="min-h-screen space-y-6 bg-[#F7F7F5] px-4 py-6 sm:px-6 lg:px-8">
 
         {showEdit ? (
-          <OrganisationEdit />
+          <OrganisationEdit
+    orgname={orgname}
+    orgtype={orgtype}
+    orgaddress={orgaddress}
+    orgphno={orgphno}
+    email={email}
+    orgTiming={orgTiming}
+    orgDesc={orgDesc}
+    onClose={() => setShowEdit(false)}
+    onUpdated={(updatedOrg) => {
+        setOrgname(updatedOrg.orgName || "");
+        setOrgtype(updatedOrg.orgCategory || "");
+        setOrgaddress(updatedOrg.orgAddress || "");
+        setOrgphno(updatedOrg.orgPhoneNo || "");
+        setEmail(updatedOrg.orgEmail || "");
+        setOrgDesc(updatedOrg.orgDesc || "");
+        setApprovalStatus(updatedOrg.approvalStatus || "pending");
+        setOrgTiming(updatedOrg.orgTiming || {
+            openingTime: "",
+            closingTime: ""
+        });
+    }}
+/>
         ) : (
           <>
 
@@ -150,9 +193,7 @@ function OrganizationProfile() {
                       About Organization
                     </p>
                     <p className="mt-2 text-sm leading-6 text-gray-600">
-                      City Care Hospital provides healthcare services and
-                      consultation appointments. QueueLess helps visitors reserve
-                      tokens and track their waiting position conveniently.
+                     {orgDesc || "No description added yet."}
                     </p>
                   </div>
                 </div>
@@ -212,33 +253,41 @@ function OrganizationProfile() {
               <div className="space-y-6">
 
                 {/* Account Status */}
-                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                  <h3 className="font-bold text-[#171717]">Account Status</h3>
+                <div className={`mt-5 flex items-center gap-3 rounded-lg p-4 ${
+  approvalStatus === "approved"
+    ? "bg-green-50"
+    : approvalStatus === "rejected"
+    ? "bg-red-50"
+    : "bg-yellow-50"
+}`}>
+  <FaCheckCircle className={`text-2xl ${
+    approvalStatus === "approved"
+      ? "text-green-600"
+      : approvalStatus === "rejected"
+      ? "text-red-600"
+      : "text-yellow-600"
+  }`} />
 
-                  <div className="mt-5 flex items-center gap-3 rounded-lg bg-green-50 p-4">
-                    <FaCheckCircle className="text-2xl text-green-600" />
-                    <div>
-                      <p className="font-semibold text-green-700">Verified</p>
-                      <p className="mt-1 text-xs text-green-600">
-                        Organization is approved
-                      </p>
-                    </div>
-                  </div>
+  <div>
+    <p className={`font-semibold capitalize ${
+      approvalStatus === "approved"
+        ? "text-green-700"
+        : approvalStatus === "rejected"
+        ? "text-red-700"
+        : "text-yellow-700"
+    }`}>
+      {approvalStatus}
+    </p>
 
-                  <div className="mt-5 flex items-center justify-between border-b border-gray-100 py-3">
-                    <span className="text-sm text-gray-500">Account Type</span>
-                    <span className="text-sm font-semibold text-[#171717]">
-                      Organization
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between py-3">
-                    <span className="text-sm text-gray-500">Profile Status</span>
-                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                      Complete
-                    </span>
-                  </div>
-                </div>
+    <p className="mt-1 text-xs text-gray-600">
+      {approvalStatus === "approved"
+        ? "Organization is approved"
+        : approvalStatus === "rejected"
+        ? "Organization approval was rejected"
+        : "Waiting for admin approval"}
+    </p>
+  </div>
+</div>
 
                 {/* Operating Hours */}
                 <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">

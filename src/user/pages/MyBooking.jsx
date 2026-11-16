@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   FaTicketAlt,
   FaCalendarAlt,
@@ -12,9 +12,46 @@ import Upcoming from '../components/Upcoming';
 import Cancelled from '../components/Cancelled';
 import Completed from '../components/Completed';
 import Header from '../components/Header'
+import { getMyBookingsAPI } from '../../services/bookingAPI';
+
 
 function MyBooking() {
   const [activeTab, setActiveTab] = useState("upcoming");
+
+  const [bookings, setBookings] = useState([]);
+
+const loadBookings = async () => {
+    try {
+        const result = await getMyBookingsAPI();
+
+        if (result.status === 200) {
+            setBookings(result.data.bookings || []);
+        }
+    } catch (error) {
+        console.log("Error fetching bookings:", error);
+    }
+};
+
+useEffect(() => {
+    loadBookings();
+}, []);
+
+
+const upcomingCount = bookings.filter(
+    (booking) =>
+        booking.status === "waiting" ||
+        booking.status === "serving"
+).length;
+
+const completedCount = bookings.filter(
+    (booking) => booking.status === "completed"
+).length;
+
+const cancelledCount = bookings.filter(
+    (booking) => booking.status === "cancelled"
+).length;
+
+
   const tabs = [
     {
       id: "upcoming",
@@ -61,7 +98,7 @@ function MyBooking() {
                 <div>
                   <p className="text-sm text-gray-500">Upcoming Bookings</p>
                   <h2 className="mt-2 text-3xl font-bold text-[#171717]">
-                    02
+                    {upcomingCount}
                   </h2>
                 </div>
   
@@ -76,7 +113,7 @@ function MyBooking() {
                 <div>
                   <p className="text-sm text-gray-500">Completed Bookings</p>
                   <h2 className="mt-2 text-3xl font-bold text-[#171717]">
-                    02
+                    {completedCount}
                   </h2>
                 </div>
   
@@ -91,7 +128,7 @@ function MyBooking() {
                 <div>
                   <p className="text-sm text-gray-500">Cancelled Bookings</p>
                   <h2 className="mt-2 text-3xl font-bold text-[#171717]">
-                    02
+                    {cancelledCount}
                   </h2>
                 </div>
   
@@ -122,7 +159,9 @@ function MyBooking() {
   
           {/* Booking List */}
           <div>
-            {activeTab === "upcoming" && <Upcoming />}
+            {activeTab === "upcoming" && (
+              <Upcoming onBookingChange={loadBookings} />
+            )}
   
             {activeTab === "completed" && <Completed />}
   

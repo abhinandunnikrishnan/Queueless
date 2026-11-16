@@ -9,6 +9,7 @@ import {
   FaClock,
   FaArrowRight,
   FaForward,
+  FaSyncAlt
 } from "react-icons/fa";
 import { getOrganizationQueueAPI, serveNextAPI } from '../../services/bookingAPI';
 
@@ -17,6 +18,8 @@ function OrganizationDashboard() {
   const [orgname, setOrgname] = useState("");
   const [orgtype, setOrgtype] = useState("");
   const [orgaddress, setOrgaddress] = useState("");
+  const [orgQueues, setOrgQueues] = useState([]);
+  const [queueData, setQueueData] = useState({});
 
   // Date and time states
   const today = new Date();
@@ -33,55 +36,39 @@ function OrganizationDashboard() {
     "09:00 AM - 10:00 AM"
   );
 
-  // General queue state
-  const [generalQueue, setGeneralQueue] = useState({
-    serving: null,
-    waiting: [],
-    completed: [],
-    totalWaiting: 0,
-    totalCompleted: 0
-  });
-
-  // Specialist queue state
-  const [specialQueue, setSpecialQueue] = useState({
-    serving: null,
-    waiting: [],
-    completed: [],
-    totalWaiting: 0,
-    totalCompleted: 0
-  });
-
   // Load queue
-  const loadQueue = async (service) => {
-    try {
-      const result = await getOrganizationQueueAPI(
-        selectedDate,
-        service,
-        selectedTimeSlot
-      );
+ const loadQueue = async (service) => {
+  try {
+    const result = await getOrganizationQueueAPI(
+      selectedDate,
+      service,
+      selectedTimeSlot
+    );
 
-      if (result?.status === 200) {
-        const queueData = {
-          serving: result.data.serving || null,
-          waiting: result.data.waiting || [],
-          completed: result.data.completed || [],
-          totalWaiting: result.data.totalWaiting || 0,
-          totalCompleted: result.data.totalCompleted || 0
-        };
+    if (result?.status === 200) {
+      const queue = {
+        serving: result.data.serving || null,
+        waiting: result.data.waiting || [],
+        completed: result.data.completed || [],
+        totalWaiting: result.data.totalWaiting || 0,
+        totalCompleted: result.data.totalCompleted || 0
+      };
 
-        if (service === "General Consultation") {
-          setGeneralQueue(queueData);
-        } else {
-          setSpecialQueue(queueData);
-        }
-      }
-    } catch (error) {
-      console.log(
-        "Queue loading error:",
-        error.response?.data || error.message
-      );
+      // Store data for each registered queue
+      setQueueData(prev => ({
+        ...prev,
+        [service]: queue
+      }));
+
+      
     }
-  };
+  } catch (error) {
+    console.log(
+      "Queue loading error:",
+      error.response?.data || error.message
+    );
+  }
+};
 
   // Organization details
   useEffect(() => {
@@ -91,39 +78,57 @@ function OrganizationDashboard() {
       setOrgname(org?.orgName || "");
       setOrgtype(org?.orgCategory || "");
       setOrgaddress(org?.orgAddress || "");
+      setOrgQueues(org?.orgQueues || []);
     }
   }, []);
 
   // Load both queues whenever date or time changes
-  useEffect(() => {
-    loadQueue("General Consultation");
-    loadQueue("Specialist Consultation");
-  }, [selectedDate, selectedTimeSlot]);
+ useEffect(() => {
+  if (orgQueues.length > 0) {
+    orgQueues.forEach((queue) => {
+      loadQueue(queue);
+    });
+  }
+}, [orgQueues, selectedDate, selectedTimeSlot]);
+
+
+useEffect(() => {
+  if (orgQueues.length === 0) return;
+
+  const interval = setInterval(() => {
+    orgQueues.forEach((queue) => {
+      loadQueue(queue);
+    });
+  }, 10000);
+
+  return () => clearInterval(interval);
+}, [orgQueues, selectedDate, selectedTimeSlot]);
 
   // Serve next token
   const handleServeNext = async (service) => {
-    try {
-      await serveNextAPI(
-        selectedDate,
-        service,
-        selectedTimeSlot
-      );
+  try {
+    const result = await serveNextAPI(
+      selectedDate,
+      service,
+      selectedTimeSlot
+    );
 
+    if (result?.status === 200) {
       await loadQueue(service);
-
-    } catch (error) {
-      alert(
-        error.response?.data?.message ||
-        "Unable to serve next token"
-      );
     }
-  };
+
+  } catch (error) {
+    alert(
+      error.response?.data?.message ||
+      "Unable to serve next token"
+    );
+  }
+};
 
   // Combine waiting bookings
-  const allWaitingBookings = [
-    ...(generalQueue.waiting || []),
-    ...(specialQueue.waiting || [])
-  ];
+  const allWaitingBookings = Object.values(queueData)
+  .flatMap(queue => queue.waiting || [])
+  .sort((a, b) => a.tokenNumber - b.tokenNumber);
 
   return (
     <div>
@@ -210,146 +215,107 @@ function OrganizationDashboard() {
 
       
 {/* Separate Service Dashboards */}
+
+{/* Dynamic Queue Dashboards */}
 <div className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
 
-  {/* General Consultation */}
-  <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+  {orgQueues.map((queue) => {
+    const currentQueue = queueData[queue] || {
+      serving: null,
+      waiting: [],
+      completed: [],
+      totalWaiting: 0,
+      totalCompleted: 0
+    };
 
-    <div className="bg-[#171717] p-6 text-white">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold">General Consultation</h2>
-          <p className="mt-1 text-sm text-gray-400">
-            Manage general consultation tokens
-          </p>
-        </div>
-        <div className="rounded-xl bg-[#D4AF37] p-3">
-          <FaTicketAlt className="text-2xl text-[#171717]" />
-        </div>
-      </div>
-
-      <p className="mt-6 text-sm text-gray-400">NOW SERVING</p>
-      <h3 className="mt-1 text-5xl font-bold text-[#D4AF37]">
-        {generalQueue.serving?.tokenCode || "Not Started"}
-      </h3>
-    </div>
-
-    {/* General Statistics */}
-    <div className="grid grid-cols-2 gap-3 p-5">
-      <div className="rounded-xl bg-[#F7F7F5] p-4">
-        <FaUsers className="text-lg text-[#98720D]" />
-        <p className="mt-3 text-xs text-gray-500">Waiting Tokens</p>
-        <p className="mt-1 text-2xl font-bold text-[#171717]">{generalQueue.totalWaiting}</p>
-      </div>
-
-      <div className="rounded-xl bg-[#F7F7F5] p-4">
-        <FaCheckCircle className="text-lg text-green-600" />
-        <p className="mt-3 text-xs text-gray-500">Completed Tokens</p>
-        <p className="mt-1 text-2xl font-bold text-[#171717]">{generalQueue.totalCompleted}</p>
-      </div>
-
-      <div className="rounded-xl bg-[#F7F7F5] p-4">
-        <FaTicketAlt className="text-lg text-[#98720D]" />
-        <p className="mt-3 text-xs text-gray-500">Current Token</p>
-        <p className="mt-1 text-xl font-bold text-[#171717]">{generalQueue.serving?.tokenCode || "--"}</p>
-      </div>
-
-      <div className="rounded-xl bg-[#F7F7F5] p-4">
-        <FaClock className="text-lg text-[#98720D]" />
-        <p className="mt-3 text-xs text-gray-500">Next Token</p>
-        <p className="mt-1 text-xl font-bold text-[#171717]">{generalQueue.waiting?.[0]?.tokenCode || "--"}</p>
-      </div>
-    </div>
-
-    {/* General Token Controls */}
-    <div className="flex flex-col gap-3 px-5 pb-5 sm:flex-row">
-     <button
-      onClick={() => handleServeNext("General Consultation")}
-      disabled={generalQueue.waiting.length === 0}
-      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#D4AF37] px-4 py-3 font-semibold text-[#171717] transition hover:bg-[#E5C65B] disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      <FaBullhorn />
-      Call Next Token
-      <FaArrowRight />
-    </button>
-
-      <button className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-5 py-3 font-semibold text-gray-700 transition hover:bg-gray-100">
-        <FaForward />
-        Skip
-      </button>
-    </div>
-  </div>
-
-
-  {/* Specialist Consultation */}
-  <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-
-    <div className="bg-[#171717] p-6 text-white">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold">Specialist Consultation</h2>
-          <p className="mt-1 text-sm text-gray-400">
-            Manage specialist consultation tokens
-          </p>
-        </div>
-        <div className="rounded-xl bg-[#D4AF37] p-3">
-          <FaTicketAlt className="text-2xl text-[#171717]" />
-        </div>
-      </div>
-
-      <p className="mt-6 text-sm text-gray-400">NOW SERVING</p>
-      <h3 className="mt-1 text-5xl font-bold text-[#D4AF37]">
-       {specialQueue.serving?.tokenCode || "Not Started"}
-      </h3>
-    </div>
-
-    {/* Specialist Statistics */}
-    <div className="grid grid-cols-2 gap-3 p-5">
-      <div className="rounded-xl bg-[#F7F7F5] p-4">
-        <FaUsers className="text-lg text-[#98720D]" />
-        <p className="mt-3 text-xs text-gray-500">Waiting Tokens</p>
-        <p className="mt-1 text-2xl font-bold text-[#171717]">{specialQueue.totalWaiting}</p>
-      </div>
-
-      <div className="rounded-xl bg-[#F7F7F5] p-4">
-        <FaCheckCircle className="text-lg text-green-600" />
-        <p className="mt-3 text-xs text-gray-500">Completed Tokens</p>
-        <p className="mt-1 text-2xl font-bold text-[#171717]">{specialQueue.totalCompleted}</p>
-      </div>
-
-      <div className="rounded-xl bg-[#F7F7F5] p-4">
-        <FaTicketAlt className="text-lg text-[#98720D]" />
-        <p className="mt-3 text-xs text-gray-500">Current Token</p>
-        <p className="mt-1 text-xl font-bold text-[#171717]">{specialQueue.serving?.tokenCode || "--"}</p>
-      </div>
-
-      <div className="rounded-xl bg-[#F7F7F5] p-4">
-        <FaClock className="text-lg text-[#98720D]" />
-        <p className="mt-3 text-xs text-gray-500">Next Token</p>
-        <p className="mt-1 text-xl font-bold text-[#171717]">{specialQueue.waiting?.[0]?.tokenCode || "--"}</p>
-      </div>
-    </div>
-
-    {/* Specialist Token Controls */}
-    <div className="flex flex-col gap-3 px-5 pb-5 sm:flex-row">
-      <button
-        onClick={() => handleServeNext("Specialist Consultation")}
-        disabled={specialQueue.waiting.length === 0}
-        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#D4AF37] px-4 py-3 font-semibold text-[#171717] transition hover:bg-[#E5C65B] disabled:cursor-not-allowed disabled:opacity-50"
+    return (
+      <div
+        key={queue}
+        className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
       >
-        <FaBullhorn />
-        Call Next Token
-        <FaArrowRight />
-      </button>
 
-      <button className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-5 py-3 font-semibold text-gray-700 transition hover:bg-gray-100">
-        <FaForward />
-        Skip
-      </button>
-    </div>
-  </div>
+        {/* Queue Header */}
+        <div className="bg-[#171717] p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold">{queue}</h2>
+              <p className="mt-1 text-sm text-gray-400">
+                Manage {queue} tokens
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-[#D4AF37] p-3">
+              <FaTicketAlt className="text-2xl text-[#171717]" />
+            </div>
+          </div>
+
+          <p className="mt-6 text-sm text-gray-400">NOW SERVING</p>
+
+          <h3 className="mt-1 text-5xl font-bold text-[#D4AF37]">
+            {currentQueue.serving?.tokenCode || "Not Started"}
+          </h3>
+        </div>
+
+        {/* Queue Statistics */}
+        <div className="grid grid-cols-2 gap-3 p-5">
+
+          <div className="rounded-xl bg-[#F7F7F5] p-4">
+            <FaUsers className="text-lg text-[#98720D]" />
+            <p className="mt-3 text-xs text-gray-500">Waiting Tokens</p>
+            <p className="mt-1 text-2xl font-bold text-[#171717]">
+              {currentQueue.totalWaiting}
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-[#F7F7F5] p-4">
+            <FaCheckCircle className="text-lg text-green-600" />
+            <p className="mt-3 text-xs text-gray-500">Completed Tokens</p>
+            <p className="mt-1 text-2xl font-bold text-[#171717]">
+              {currentQueue.totalCompleted}
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-[#F7F7F5] p-4">
+            <FaTicketAlt className="text-lg text-[#98720D]" />
+            <p className="mt-3 text-xs text-gray-500">Current Token</p>
+            <p className="mt-1 text-xl font-bold text-[#171717]">
+              {currentQueue.serving?.tokenCode || "--"}
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-[#F7F7F5] p-4">
+            <FaClock className="text-lg text-[#98720D]" />
+            <p className="mt-3 text-xs text-gray-500">Next Token</p>
+            <p className="mt-1 text-xl font-bold text-[#171717]">
+              {currentQueue.waiting?.[0]?.tokenCode || "--"}
+            </p>
+          </div>
+
+        </div>
+
+        {/* Queue Controls */}
+        <div className="flex flex-col gap-3 px-5 pb-5 sm:flex-row">
+
+          <button
+            onClick={() => handleServeNext(queue)}
+            disabled={currentQueue.waiting.length === 0}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#D4AF37] px-4 py-3 font-semibold text-[#171717] transition hover:bg-[#E5C65B] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FaBullhorn />
+            Call Next Token
+            <FaArrowRight />
+          </button>
+
+          
+
+        </div>
+
+      </div>
+    );
+  })}
 
 </div>
+
 
 
       {/* Waiting Queue Table */}
@@ -366,6 +332,7 @@ function OrganizationDashboard() {
           <span className="w-fit rounded-full bg-[#D4AF37]/15 px-4 py-2 text-sm font-semibold text-[#98720D]">
             {allWaitingBookings.length} waiting
           </span>
+          
         </div>
 
         <div className="overflow-x-auto">
@@ -375,6 +342,7 @@ function OrganizationDashboard() {
                 <th className="px-6 py-4">Token</th>
                 <th className="px-6 py-4">Customer</th>
                 <th className="px-6 py-4">Service</th>
+                <th className="px-6 py-4">Booking Date</th>
                 <th className="px-6 py-4">Booking Time</th>
                 <th className="px-6 py-4">Status</th>
               </tr>
@@ -396,6 +364,12 @@ function OrganizationDashboard() {
                     </td>
 
                     <td className="px-6 py-4 text-gray-600">
+                        {new Date(
+                            booking.bookingDate + "T00:00:00"
+                        ).toLocaleDateString("en-IN")}
+                    </td>
+
+                    <td className="px-6 py-4 text-gray-600">
                       {booking.timeSlot}
                     </td>
 
@@ -408,7 +382,7 @@ function OrganizationDashboard() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                     No waiting customers for this date and time slot.
                   </td>
                 </tr>

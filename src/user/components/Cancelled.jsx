@@ -27,15 +27,17 @@ function Cancelled() {
     );
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      {bookings.map((booking) => (
+      {
+      cancelledBookings.length > 0 ? (
+      cancelledBookings.map((booking) => (
         <div
-          key={booking.id}
+          key={booking._id}
           className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
         >
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-xl font-bold text-[#171717]">
-                {booking.organization}
+                {booking.orgName}
               </h3>
               <p className="mt-1 text-sm text-gray-500">
                 {booking.service}
@@ -48,26 +50,30 @@ function Cancelled() {
             </span>
           </div>
 
-          <div className="my-5 rounded-xl bg-gray-100 p-5 text-center">
-            <p className="text-sm text-gray-500">Cancelled Token</p>
-            <p className="mt-2 text-4xl font-bold text-gray-500">
-              {booking.token}
+          <div className="my-5 rounded-xl bg-[#171717] p-5 text-center">
+            <p className="text-sm text-gray-300">Cancelled Token</p>
+            <p className="mt-2 text-4xl font-bold text-[#D4AF37]">
+              {booking.tokenCode}
             </p>
           </div>
 
           <div className="space-y-3 text-sm text-gray-600">
             <p className="flex items-center gap-3">
               <FaCalendarAlt className="text-gray-500" />
-              {booking.date}
+              {booking.bookingDate}
             </p>
 
-            <p className="flex items-center gap-3">
-              <FaMapMarkerAlt className="text-gray-500" />
-              {booking.location}
-            </p>
+            
           </div>
         </div>
-      ))}
+      ))
+    ):(
+       <p className="col-span-full py-10 text-center text-gray-500">
+        No cancelled bookings found.
+    </p>
+    )
+
+    }
     </div>
   )
 }

@@ -22,6 +22,8 @@ import Pnf from './pages/Pnf'
 import Preloader1 from './components/Preloader1'
 import Footer from './components/Footer'
 import { useState } from 'react'
+import PaymentSuccess from './user/pages/PaymentSuccess'
+import PaymentFailed from './user/pages/PaymentFailed'
 
 
 function App() {
@@ -37,7 +39,7 @@ function App() {
       <Routes>
 
         <Route path='/' element={isLoading?<Preloader1/>:<Home/>}/>
-        <Route path='/mybooking/:id' element={<MyBooking/>}/>
+        <Route path='/mybooking/:id?' element={<MyBooking/>}/>
         <Route path='/organizations' element={<Organizations/>}/>
         <Route path='/organizations/:id' element={<OrganizationDetails/>}/>
         <Route path='/profile/:id' element={<Profile/>}/>
@@ -46,6 +48,8 @@ function App() {
         <Route path='/orgLogin' element={<Auth2/>}/>
         <Route path='/orgRegister' element={<Auth2 insideRegister/>}/>
         <Route path='/contact' element={<Contact/>}/>
+        <Route path='/payment-success' element={<PaymentSuccess/>}/>
+        <Route path='/payment-cancelled' element={<PaymentFailed/>}/>
 
         <Route path='/organization/dashboard' element={<OrganizationDashboard/>}/>
         <Route path='/organization/profile' element={<OrganizationProfile/>}/>

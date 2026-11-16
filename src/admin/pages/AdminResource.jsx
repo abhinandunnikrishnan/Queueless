@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import AdminHeader from '../components/AdminHeader'
 import {
   FaUsers,
@@ -10,8 +10,88 @@ import {
   FaEye,
   FaCheckCircle,
 } from "react-icons/fa";
+import { approveOrganizationAPI, getAdminResourcesAPI, removeOrganizationAPI } from '../../services/userApi';
+
+
+
 
 function AdminResource() {
+  const [resources, setResources] = useState({
+  totalUsers: 0,
+  totalOrganizations: 0,
+  users: [],
+  organizations: []
+});
+const [searchTerm, setSearchTerm] = useState("");
+
+useEffect(() => {
+  const fetchResources = async () => {
+    try {
+      const response = await getAdminResourcesAPI();
+      setResources(response.data);
+    } catch (error) {
+      console.log("Error fetching admin resources:", error);
+    }
+  };
+
+  fetchResources();
+}, []);
+const filteredUsers = resources.users.filter((user) =>
+  `${user.username} ${user.email} ${user.phoneNo || ""}`
+    .toLowerCase()
+    .includes(searchTerm.toLowerCase())
+);
+
+const filteredOrganizations = resources.organizations.filter((org) =>
+  `${org.orgName} ${org.orgEmail} ${org.orgCategory || ""} ${org.orgAddress || ""}`
+    .toLowerCase()
+    .includes(searchTerm.toLowerCase())
+);
+
+const handleApproveOrganization = async (orgId) => {
+  try {
+    const response = await approveOrganizationAPI(orgId);
+
+    alert(response.data.message);
+
+    // Refresh organization list
+    const updatedData = await getAdminResourcesAPI();
+    setResources(updatedData.data);
+
+  } catch (error) {
+    console.log("Error approving organization:", error);
+
+    alert(
+      error.response?.data?.message || "Failed to approve organization"
+    );
+  }
+};
+
+const handleRemoveOrganization = async (orgId) => {
+  const confirmRemove = window.confirm(
+    "Are you sure you want to remove this organization?"
+  );
+
+  if (!confirmRemove) return;
+
+  try {
+    const response = await removeOrganizationAPI(orgId);
+
+    alert(response.data.message);
+
+    // Refresh organization list
+    const updatedData = await getAdminResourcesAPI();
+    setResources(updatedData.data);
+
+  } catch (error) {
+    console.log("Error removing organization:", error);
+
+    alert(
+      error.response?.data?.message || "Failed to remove organization"
+    );
+  }
+};
+
   return (
     <div>
       <AdminHeader/>
@@ -34,7 +114,7 @@ function AdminResource() {
           </div>
           <div>
             <p className="text-sm text-gray-500">Total Users</p>
-            <h2 className="mt-1 text-2xl font-bold text-[#171717]">1,248</h2>
+            <h2 className="mt-1 text-2xl font-bold text-[#171717]">{resources.totalUsers.toLocaleString()}</h2>
             <p className="mt-1 text-xs text-green-600">Registered users</p>
           </div>
         </div>
@@ -45,7 +125,7 @@ function AdminResource() {
           </div>
           <div>
             <p className="text-sm text-gray-500">Total Organizations</p>
-            <h2 className="mt-1 text-2xl font-bold text-[#171717]">86</h2>
+            <h2 className="mt-1 text-2xl font-bold text-[#171717]">{resources.totalOrganizations.toLocaleString()}</h2>
             <p className="mt-1 text-xs text-green-600">Registered organizations</p>
           </div>
         </div>
@@ -67,10 +147,12 @@ function AdminResource() {
       <div className="relative w-full sm:max-w-md">
         <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
-          type="text"
-          placeholder="Search users..."
-          className="w-full rounded-lg border border-gray-300 bg-white py-3 pl-11 pr-4 text-sm outline-none focus:border-[#D4AF37]"
-        />
+  type="text"
+  placeholder="Search users or organizations..."
+  value={searchTerm}
+  onChange={(e) => setSearchTerm(e.target.value)}
+  className="w-full border border-gray-300 rounded-lg px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+/>
       </div>
 
       {/* Users Table */}
@@ -87,35 +169,36 @@ function AdminResource() {
             <thead className="bg-[#171717] text-white">
               <tr>
                 <th className="px-5 py-4">User</th>
-                <th className="px-5 py-4">Contact Details</th>
-                <th className="px-5 py-4">Joined Date</th>
-                <th className="px-5 py-4">Action</th>
+                <th className="px-5 py-4">Email</th>
+                <th className="px-5 py-4">Phone.No </th>
+                <th className="px-5 py-4">Address</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              <tr className="transition hover:bg-[#F7F7F5]">
-                <td className="px-5 py-4">
-                  <p className="font-semibold text-[#171717]">Arjun Nair</p>
-                  <p className="mt-1 text-xs text-gray-500">USR-001</p>
-                </td>
-                <td className="px-5 py-4">
-                  <p className="flex items-center gap-2 text-gray-600">
-                    <FaEnvelope className="text-[#98720D]" />
-                    arjun@example.com
-                  </p>
-                  <p className="mt-2 flex items-center gap-2 text-gray-500">
-                    <FaPhone className="text-xs" />
-                    98765 43210
-                  </p>
-                </td>
-                <td className="px-5 py-4 text-gray-600">20 Oct 2026</td>
-                
-                <td className="px-5 py-4">
-                  <button className="rounded-lg border border-gray-200 p-2 text-[#98720D] hover:bg-[#D4AF37]/20">
-                    <FaEye />
-                  </button>
-                </td>
-              </tr>
+             {filteredUsers.map((user) => (
+  <tr key={user._id} className="border-b hover:bg-gray-50">
+    <td className="px-6 py-4">
+      <div className="font-medium text-gray-900">
+        {user.username}
+      </div>
+      <div className="text-sm text-gray-500">
+        {user._id}
+      </div>
+    </td>
+
+    <td className="px-6 py-4">
+      {user.email}
+    </td>
+
+    <td className="px-6 py-4">
+      {user.phoneNo || "Not provided"}
+    </td>
+
+    <td className="px-6 py-4">
+      {user.address || "Not provided"}
+    </td>
+  </tr>
+))}
  
             </tbody>
           </table>
@@ -143,44 +226,73 @@ function AdminResource() {
             <thead className="bg-[#171717] text-white">
               <tr>
                 <th className="px-5 py-4">Organization</th>
-                <th className="px-5 py-4">Contact</th>
+                <th className="px-5 py-4">Email</th>
+                <th className="px-5 py-4">Phone.No</th>
                 <th className="px-5 py-4">Category</th>
-                <th className="px-5 py-4">Location</th>
-                <th className="px-5 py-4">Action</th>
+                <th className="px-5 py-4">Address</th>
+                <th className="px-6 py-4 text-left">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              <tr className="transition hover:bg-[#F7F7F5]">
-                <td className="px-5 py-4">
-                  <p className="font-semibold text-[#171717]">
-                    City Care Hospital
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500">ORG-001</p>
-                </td>
-                <td className="px-5 py-4">
-                  <p className="flex items-center gap-2 text-gray-600">
-                    <FaEnvelope className="text-[#98720D]" />
-                    citycare@example.com
-                  </p>
-                  <p className="mt-2 flex items-center gap-2 text-gray-500">
-                    <FaPhone className="text-xs" />
-                    0484 123 4567
-                  </p>
-                </td>
-                <td className="px-5 py-4 text-gray-600">Hospital</td>
-                <td className="px-5 py-4">
-                  <span className="flex items-center gap-2 text-gray-600">
-                    <FaMapMarkerAlt className="text-[#98720D]" />
-                    Kochi, Kerala
-                  </span>
-                </td>
-                <td className="px-5 py-4">
-                  <span className="inline-flex items-center gap-2 rounded-lg bg-green-100 px-3 py-2 text-xs font-semibold text-green-700">
-                    <FaCheckCircle />
-                    Approved
-                  </span>
-                </td>
-              </tr>
+              {filteredOrganizations.map((org) => (
+  <tr key={org._id} className="border-b hover:bg-gray-50">
+    <td className="px-6 py-4">
+      <div className="font-medium text-gray-900">
+        {org.orgName}
+      </div>
+      <div className="text-sm text-gray-500">
+        {org._id}
+      </div>
+    </td>
+
+    <td className="px-6 py-4">
+      {org.orgEmail}
+    </td>
+
+    <td className="px-6 py-4">
+      {org.orgPhoneNo || "Not provided"}
+    </td>
+
+    <td className="px-6 py-4">
+      {org.orgCategory || "Not specified"}
+    </td>
+
+    <td className="px-6 py-4">
+      {org.orgAddress || "Not provided"}
+    </td>
+
+   
+    <td className="px-6 py-4">
+  <div className="flex items-center gap-2">
+
+    {org.approvalStatus !== "approved" && (
+      <button
+        onClick={() => handleApproveOrganization(org._id)}
+        className="bg-[#D4AF37] hover:bg-[#b89525] text-black px-4 py-2 rounded-lg text-sm font-semibold transition"
+      >
+        <FaCheckCircle className="inline mr-2" />
+        Approve
+      </button>
+    )}
+
+    {org.approvalStatus === "approved" && (
+      <span className="text-green-600 font-medium text-sm">
+        Approved
+      </span>
+    )}
+
+    <button
+      onClick={() => handleRemoveOrganization(org._id)}
+      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
+    >
+      Remove
+    </button>
+
+  </div>
+</td>
+  </tr>
+  
+))}
  
             </tbody>
           </table>

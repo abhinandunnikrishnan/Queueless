@@ -10,7 +10,8 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     const isOrganizationRequest =
-      config.url?.includes("/bookings/organization");
+    config.url?.includes("/bookings/organization") ||
+    config.url?.includes("/update-org");
 
     const token = isOrganizationRequest
       ? sessionStorage.getItem("orgToken")

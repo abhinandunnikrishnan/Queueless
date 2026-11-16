@@ -8,7 +8,7 @@ import {
 import { useEffect, useState } from "react";
 import { cancelBookingAPI, getMyBookingsAPI } from '../../services/bookingAPI';
 
-function Upcoming() {
+function Upcoming({ onBookingChange }) {
   const [bookings, setBookings] = useState([]);
 
   useEffect(() => {
@@ -38,7 +38,8 @@ const handleCancel = async (id) => {
 
         if (result.status === 200) {
             alert("Booking cancelled successfully");
-            loadBookings();
+            await loadBookings();
+            onBookingChange();
         }
 
     } catch (error) {
@@ -52,9 +53,9 @@ const handleCancel = async (id) => {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {upcomingBookings.map((booking) => (
-        <div>
+        <div key={booking._id}>
           <div
-            key={booking._id}
+            
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md"
           >
             <div className="flex items-start justify-between gap-3">

@@ -30,6 +30,8 @@ function Auth2({insideRegister}) {
       orgAddress: "",
       orgPassword: "",
       orgCategory: "",
+      orgQueueCount: 1,
+      orgQueues: [""],
       orgTiming: {
         openingTime: "",
         closingTime: ""
@@ -59,6 +61,45 @@ function Auth2({insideRegister}) {
       orgCategory: insideRegister
         ? Yup.string().required("Organization type is required")
         : Yup.string(),
+
+      orgQueueCount: insideRegister
+        ? Yup.number()
+            .required("Queue count is required")
+            .integer("Queue count must be a whole number")
+            .min(1, "Minimum 1 queue is required")
+            .max(3, "Maximum 3 queues are allowed")
+        : Yup.number().notRequired(),
+
+      orgQueues: insideRegister
+          ? Yup.array()
+              .of(
+                  Yup.string()
+                      .trim()
+                      .required("Queue name is required")
+              )
+              .min(1, "At least one queue is required")
+              .max(3, "Maximum 3 queues are allowed")
+              .test(
+                  "queue-count",
+                  "Please enter the correct number of queue names",
+                  function (queues) {
+                      return queues?.length === Number(this.parent.orgQueueCount);
+                  }
+              )
+              .test(
+                  "unique-queues",
+                  "Queue names must be unique",
+                  function (queues) {
+                      if (!queues) return true;
+
+                      const names = queues.map(queue =>
+                          queue.trim().toLowerCase()
+                      );
+
+                      return new Set(names).size === names.length;
+                  }
+              )
+          : Yup.array().notRequired(),
 
       orgTiming: Yup.object({
         openingTime: insideRegister
@@ -338,6 +379,68 @@ function Auth2({insideRegister}) {
                     )}
                 </div>
             )}
+
+
+
+          {/* Number of Queues */}
+          {insideRegister && (
+              <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-700">
+                      Number of Queues
+                  </label>
+
+                  <select
+                      name="orgQueueCount"
+                      value={formik.values.orgQueueCount}
+                      onChange={(e) => {
+                          const count = Number(e.target.value);
+
+                          formik.setFieldValue("orgQueueCount", count);
+
+                          const updatedQueues = Array.from(
+                              { length: count },
+                              (_, index) => formik.values.orgQueues[index] || ""
+                          );
+
+                          formik.setFieldValue("orgQueues", updatedQueues);
+                      }}
+                      onBlur={formik.handleBlur}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#D4AF37]"
+                  >
+                      <option value={1}>1 Queue</option>
+                      <option value={2}>2 Queues</option>
+                      <option value={3}>3 Queues</option>
+                  </select>
+              </div>
+          )}
+
+          {/* Queue Names */}
+          {insideRegister &&
+              formik.values.orgQueues.map((queue, index) => (
+                  <div key={index}>
+                      <label className="mb-2 block text-sm font-semibold text-gray-700">
+                          Queue {index + 1} Name
+                      </label>
+
+                      <input
+                          type="text"
+                          name={`orgQueues[${index}]`}
+                          value={queue}
+                          onChange={formik.handleChange}
+                          onBlur={formik.handleBlur}
+                          placeholder={`Enter queue ${index + 1} name`}
+                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#D4AF37]"
+                      />
+
+                      {formik.touched.orgQueues?.[index] &&
+                          formik.errors.orgQueues?.[index] && (
+                              <p className="mt-1 text-sm text-red-500">
+                                  {formik.errors.orgQueues[index]}
+                              </p>
+                          )}
+                  </div>
+              ))}
+
 
 
             {/* Organization Timing */}
