@@ -165,7 +165,7 @@ const handleRemoveOrganization = async (orgId) => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-175 text-left text-sm">
+          <table className="w-full min-w-[700px] text-left text-sm">
             <thead className="bg-[#171717] text-white">
               <tr>
                 <th className="px-5 py-4">User</th>
@@ -222,7 +222,7 @@ const handleRemoveOrganization = async (orgId) => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-187.5 text-left text-sm">
+          <table className="w-full min-w-[750px] text-left text-sm">
             <thead className="bg-[#171717] text-white">
               <tr>
                 <th className="px-5 py-4">Organization</th>
